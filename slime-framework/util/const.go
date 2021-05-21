@@ -32,6 +32,10 @@ const (
 	TypeUrl_UdpaTypedStruct         = "type.googleapis.com/udpa.type.v1.TypedStruct"
 	TypeUrl_EnvoyLocalRatelimit     = "type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit"
 	TypeUrl_NeteaseLocalFlowControl = "type.googleapis.com/netease.filters.http.local_flow_control.v2"
+	TypeUrl_ServiceEntry            = "networking.istio.io/v1alpha3/ServiceEntry"
+	TypeUrl_Sidecar                 = "networking.istio.io/v1alpha3/Sidecar"
+	TypeUrl_DestinationRule         = "networking.istio.io/v1alpha3/DestinationRule"
+	TypeUrl_VirtualService          = "networking.istio.io/v1alpha3/VirtualService"
 
 	EnvoyFilter_GlobalSidecar = "to_global_sidecar"
 

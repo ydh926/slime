@@ -1,0 +1,7 @@
+domain: my.domain
+repo: slime.io/slime/slime-modules/discovery
+resources:
+- group: microservice.slime.io
+  kind: MeshSource
+  version: v1alpha1
+version: "2"

@@ -1,0 +1,31 @@
+/*
+* @Author: yangdihang
+* @Date: 2020/5/21
+*/
+
+syntax = "proto3";
+
+package slime.microservice.v1alpha1;
+
+option go_package = "slime.io/slime/slime-modules/discovery/api/v1alpha1";
+
+message Zookeeper {
+    repeated string address = 1;
+    int64 timeout = 2;
+    string root = 3;
+}
+
+message Eureka {
+    repeated string address = 1;
+    int64 refreshPeriod = 2;
+}
+
+message MeshSourceSpec {
+    oneof Source {
+        Zookeeper zookeeper = 1;
+        Eureka eureka = 2;
+    }
+    // 该注册中心会被映射到K8s中哪个namespace
+    string mappingNamespace = 3;
+}
+

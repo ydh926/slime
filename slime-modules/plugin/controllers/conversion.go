@@ -11,8 +11,8 @@ import (
 	envoy_extensions_wasm_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/wasm/v3"
 	"strings"
 
-	"slime.io/slime/slime-modules/plugin/api/v1alpha1"
 	"slime.io/slime/slime-framework/util"
+	"slime.io/slime/slime-modules/plugin/api/v1alpha1"
 
 	"github.com/gogo/protobuf/types"
 	istio "istio.io/api/networking/v1alpha3"
@@ -57,7 +57,7 @@ func translateRatelimitToPatch(settings *types.Struct) *istio.EnvoyFilter_Patch 
 	return patch
 }
 
-func (r *EnvoyPluginReconciler)translateEnvoyPlugin(in *v1alpha1.EnvoyPlugin, out *istio.EnvoyFilter) {
+func (r *EnvoyPluginReconciler) translateEnvoyPlugin(in *v1alpha1.EnvoyPlugin, out *istio.EnvoyFilter) {
 	if in.WorkloadSelector != nil {
 		out.WorkloadSelector = &istio.WorkloadSelector{
 			Labels: in.WorkloadSelector.Labels,
@@ -325,11 +325,15 @@ func (r *PluginManagerReconciler) convertPluginToPatch(in *v1alpha1.Plugin) (*is
 				},
 			}
 		}
+	} else {
+		out.Patch.Value.Fields[util.Struct_HttpFilter_Name] = &types.Value{
+			Kind: &types.Value_StringValue{
+				StringValue: in.Name,
+			},
+		}
 	}
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
-
-
