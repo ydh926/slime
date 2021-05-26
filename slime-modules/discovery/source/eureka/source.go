@@ -23,9 +23,17 @@ type source struct {
 	mappingNamespaces string
 }
 
+func (s *source) GetMappingNamespace() string {
+	return s.mappingNamespaces
+}
+
+func (s *source) SetMappingNamespace(namespace string) {
+	s.mappingNamespaces = namespace
+}
+
 //var Scope = log.RegisterScope("eureka", "eureka debugging", 0)
 
-func New(eureka v1alpha1.Eureka, outer model.Actor, mappingNamespace string) (meshsource.Source, error) {
+func New(eureka *v1alpha1.Eureka, outer model.Actor, mappingNamespace string) (meshsource.Source, error) {
 
 	client := NewClient(eureka.Address)
 	if client == nil {

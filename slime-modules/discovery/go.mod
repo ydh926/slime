@@ -14,9 +14,11 @@ require (
 	k8s.io/client-go v0.17.2
 	sigs.k8s.io/controller-runtime v0.5.0
 	slime.io/slime/slime-framework v0.0.0-00010101000000-000000000000
+	istio.io/istio-mcp v0.0.0-00010101000000-000000000000
 )
 
 replace (
+	istio.io/istio-mcp => ../../istio-mcp
 	k8s.io/api => k8s.io/api v0.17.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.17.2
 	slime.io/slime/slime-framework => ../../slime-framework

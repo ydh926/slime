@@ -1,0 +1,3 @@
+[submodule "istio-mcp"]
+	path = istio-mcp
+	url = ssh://git@g.hz.netease.com:22222/fangzhiheng/istio-mcp.git

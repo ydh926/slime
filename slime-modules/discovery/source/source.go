@@ -1,6 +1,8 @@
 package meshsource
 
-type Source interface{
+type Source interface {
 	Start()
 	Stop()
+	SetMappingNamespace(namespace string)
+	GetMappingNamespace()string
 }

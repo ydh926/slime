@@ -20,10 +20,15 @@ import (
 	"context"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"slime.io/slime/slime-framework/util"
+	"slime.io/slime/slime-modules/discovery/api/v1alpha1"
 	"slime.io/slime/slime-modules/discovery/api/v1alpha1/wrapper"
 	"slime.io/slime/slime-modules/discovery/model"
 	meshsource "slime.io/slime/slime-modules/discovery/source"
+	"slime.io/slime/slime-modules/discovery/source/eureka"
+	"slime.io/slime/slime-modules/discovery/source/zookeeper"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -64,19 +69,30 @@ func (r *MeshSourceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	}
 
 	// 资源更新
-	if
-	if reflect.DeepEqual(instance.Spec, r.lastUpdatePolicy) {
-		r.lastUpdatePolicyLock.RUnlock()
-		return reconcile.Result{}, nil
-	} else {
-		r.lastUpdatePolicyLock.RUnlock()
-		r.lastUpdatePolicyLock.Lock()
-		r.lastUpdatePolicy = instance.Spec
-		r.lastUpdatePolicyLock.Unlock()
-		r.source.WatchAdd(req.NamespacedName)
-	}
-	r.source.WatchAdd(req.NamespacedName)
+	pb, err := util.FromJSONMap("slime.microservice.v1alpha1.MeshSource", instance.Spec)
+	if err != nil {
+		old := r.sources[req.NamespacedName]
+		if !reflect.DeepEqual(pb, old) {
+			old.Stop()
+			if a, ok := pb.(*v1alpha1.MeshSourceSpec); ok {
+				switch m := a.Source.(type) {
+				case *v1alpha1.MeshSourceSpec_Zookeeper:
+					if s, err := zookeeper.New(m.Zookeeper, r.outer, a.MappingNamespace); err == nil {
+						s.Start()
+						r.sources[req.NamespacedName] = s
+					} else {
+						// todo log
 
+					}
+				case *v1alpha1.MeshSourceSpec_Eureka:
+					if s, err := eureka.New(m.Eureka,r.outer,a.MappingNamespace);err == nil {
+						s.Start()
+						r.sources[req.NamespacedName] = s
+					}
+				}
+			}
+		}
+	}
 	return ctrl.Result{}, nil
 }
 

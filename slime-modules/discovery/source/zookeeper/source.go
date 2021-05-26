@@ -31,10 +31,18 @@ type source struct {
 	gatewayModel          bool
 	outer                 model.Actor
 	MappingNamespace      string
-	stop                  chan struct{}
+	stop                  BroadcastService
 }
 
-func New(zookeeper v1alpha1.Zookeeper, outer model.Actor, mappingNamespace string) (meshsource.Source, error) {
+func (s *source) GetMappingNamespace() string {
+	return s.MappingNamespace
+}
+
+func (s *source) SetMappingNamespace(namespace string) {
+	s.MappingNamespace = namespace
+}
+
+func New(zookeeper *v1alpha1.Zookeeper, outer model.Actor, mappingNamespace string) (meshsource.Source, error) {
 	if con, _, err := zk.Connect(zookeeper.Address, time.Duration(zookeeper.Timeout)); err != nil {
 		return nil, err
 	} else {
@@ -55,7 +63,7 @@ func (s *source) Start() {
 }
 
 func (s *source) Stop() {
-	s.stop <- struct{}{}
+	s.stop.BroadCast(struct{}{})
 }
 
 const (
@@ -93,6 +101,9 @@ retry:
 	}
 	//init update
 	updateFunction(children, path)
+
+	stopCh := make(chan struct{})
+	s.stop.Register(stopCh)
 	for {
 		select {
 		case watchEvent := <-event:
@@ -109,7 +120,8 @@ retry:
 			default:
 				goto retry
 			}
-		case <-s.stop:
+		case <-stopCh:
+			s.stop.DeRegister(stopCh)
 			return
 		}
 	}
@@ -130,6 +142,9 @@ retry:
 	}
 	//init update
 	updateFunction(providerChildren, consumerChildren, providersPath)
+
+	stopCh := make(chan struct{})
+	s.stop.Register(stopCh)
 	for {
 		select {
 		case providerWatchEvent := <-providerEvent:
@@ -157,7 +172,8 @@ retry:
 				}
 
 			}
-		case <-s.stop:
+		case <-stopCh:
+			s.stop.DeRegister(stopCh)
 			return
 		}
 	}
