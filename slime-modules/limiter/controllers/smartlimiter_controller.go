@@ -106,7 +106,7 @@ func (r *SmartLimiterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func NewReconciler(mgr ctrl.Manager, env *bootstrap.Environment) *SmartLimiterReconciler {
-	log := ctrl.Log.WithName("controllers").WithName("SmartLimiter")
+	log := ctrl.Log.WithName("in").WithName("SmartLimiter")
 	eventChan := make(chan event_source.Event)
 	src := &aggregate.Source{}
 	ms, err := k8s.NewMetricSource(eventChan, env)
@@ -123,7 +123,7 @@ func NewReconciler(mgr ctrl.Manager, env *bootstrap.Environment) *SmartLimiterRe
 	r := &SmartLimiterReconciler{
 		Client:               mgr.GetClient(),
 		scheme:               mgr.GetScheme(),
-		Log:                  ctrl.Log.WithName("controllers").WithName("SmartLimiter"),
+		Log:                  ctrl.Log.WithName("in").WithName("SmartLimiter"),
 		metricInfo:           cmap.New(),
 		eventChan:            eventChan,
 		source:               src,

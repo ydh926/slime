@@ -85,7 +85,7 @@ func main() {
 	// add dr reconcile
 	if err = (&istiocontroller.DestinationRuleReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("DestinationRule"),
+		Log:    ctrl.Log.WithName("in").WithName("DestinationRule"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DestinationRule")

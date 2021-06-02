@@ -1,6 +1,8 @@
 package model
 
-import "github.com/gogo/protobuf/proto"
+import (
+	"istio.io/istio-mcp/pkg/model"
+)
 
 type EventType int
 
@@ -18,7 +20,6 @@ type Meta struct {
 
 type Event struct {
 	EventType
-	Meta
+	model.Config
 	Version int64
-	Message proto.Message
 }

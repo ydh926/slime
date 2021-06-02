@@ -71,7 +71,7 @@ func main() {
 
 	if err = (&controllers.PluginManagerReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("PluginManager"),
+		Log:    ctrl.Log.WithName("in").WithName("PluginManager"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PluginManager")
@@ -79,7 +79,7 @@ func main() {
 	}
 	if err = (&controllers.EnvoyPluginReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("EnvoyPlugin"),
+		Log:    ctrl.Log.WithName("in").WithName("EnvoyPlugin"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "EnvoyPlugin")

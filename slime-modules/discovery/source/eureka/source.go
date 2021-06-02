@@ -2,12 +2,12 @@ package eureka
 
 import (
 	"reflect"
-	"slime.io/slime/slime-modules/discovery/api/v1alpha1"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
 	networking "istio.io/api/networking/v1alpha3"
-	"slime.io/slime/slime-framework/util"
+	model2 "istio.io/istio-mcp/pkg/model"
+	"slime.io/slime/slime-modules/discovery/api/v1alpha1"
 	"slime.io/slime/slime-modules/discovery/model"
 	meshsource "slime.io/slime/slime-modules/discovery/source"
 )
@@ -48,6 +48,7 @@ func New(eureka *v1alpha1.Eureka, outer model.Actor, mappingNamespace string) (m
 		outer:         outer,
 		started:       false,
 		gatewayModel:  false,
+		mappingNamespaces: mappingNamespace,
 	}, nil
 }
 
@@ -73,10 +74,11 @@ func (s *source) refresh() {
 
 	for service, oldEntry := range s.cache {
 		if _, ok := newServiceEntryMap[service]; !ok {
-			meta := model.Meta{
-				Name:      service,
-				Namespace: s.mappingNamespaces,
-				TypeUrl:   util.TypeUrl_ServiceEntry,
+			meta := model2.ConfigMeta{
+				Name:             service,
+				Namespace:        s.mappingNamespaces,
+				GroupVersionKind: model.GVKServiceEntry,
+				ResourceVersion: time.Now().String(),
 			}
 			// DELETE
 			delete(s.cache, service)
@@ -89,19 +91,19 @@ func (s *source) refresh() {
 		if oldEntry, ok := s.cache[service]; !ok {
 			// ADD
 			s.cache[service] = newEntry
-			meta := model.Meta{
-				Name:      service,
-				Namespace: s.mappingNamespaces,
-				TypeUrl:   util.TypeUrl_ServiceEntry,
+			meta := model2.ConfigMeta{
+				Name:             service,
+				Namespace:        s.mappingNamespaces,
+				GroupVersionKind: model.GVKServiceEntry,
 			}
 			event := buildEvent(model.Add, newEntry, meta)
 			s.outer.Send(event)
 		} else {
 			if !reflect.DeepEqual(oldEntry, newEntry) {
-				meta := model.Meta{
-					Name:      service,
-					Namespace: s.mappingNamespaces,
-					TypeUrl:   util.TypeUrl_ServiceEntry,
+				meta := model2.ConfigMeta{
+					Name:             service,
+					Namespace:        s.mappingNamespaces,
+					GroupVersionKind: model.GVKServiceEntry,
 				}
 				// UPDATE
 				s.cache[service] = newEntry
@@ -112,12 +114,14 @@ func (s *source) refresh() {
 	}
 }
 
-func buildEvent(kind model.EventType, item proto.Message, meta model.Meta) *model.Event {
+func buildEvent(kind model.EventType, item proto.Message, meta model2.ConfigMeta) *model.Event {
 	return &model.Event{
 		EventType: kind,
 		Version:   time.Now().Unix(),
-		Message:   item,
-		Meta:      meta,
+		Config: model2.Config{
+			Spec:       item,
+			ConfigMeta: meta,
+		},
 	}
 }
 
@@ -138,5 +142,5 @@ func (s *source) Start() {
 }
 
 func (s *source) Stop() {
-	s.stop <- struct{}{}
+	close(s.stop)
 }

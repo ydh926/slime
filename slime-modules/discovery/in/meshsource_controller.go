@@ -14,26 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package in
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"reflect"
+
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"slime.io/slime/slime-framework/util"
 	"slime.io/slime/slime-modules/discovery/api/v1alpha1"
 	"slime.io/slime/slime-modules/discovery/api/v1alpha1/wrapper"
 	"slime.io/slime/slime-modules/discovery/model"
+	"slime.io/slime/slime-modules/discovery/out/k8s"
+	"slime.io/slime/slime-modules/discovery/out/xds"
 	meshsource "slime.io/slime/slime-modules/discovery/source"
 	"slime.io/slime/slime-modules/discovery/source/eureka"
 	"slime.io/slime/slime-modules/discovery/source/zookeeper"
-
-	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MeshSourceReconciler reconciles a MeshSource object
@@ -43,6 +45,22 @@ type MeshSourceReconciler struct {
 	Scheme  *runtime.Scheme
 	outer   model.Actor
 	sources map[types.NamespacedName]meshsource.Source
+}
+
+func New(mcpUrl string, c client.Client, log logr.Logger, scheme *runtime.Scheme) *MeshSourceReconciler {
+	var outer model.Actor
+	if mcpUrl == "" {
+		outer = k8s.New(c)
+	} else {
+		outer = xds.New(mcpUrl)
+	}
+	return &MeshSourceReconciler{
+		sources: make(map[types.NamespacedName]meshsource.Source),
+		Client:  c,
+		Log:     log,
+		Scheme:  scheme,
+		outer:   outer,
+	}
 }
 
 // +kubebuilder:rbac:groups=microservice.slime.io.my.domain,resources=meshsources,verbs=get;list;watch;create;update;patch;delete
@@ -85,7 +103,7 @@ func (r *MeshSourceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 					}
 				case *v1alpha1.MeshSourceSpec_Eureka:
-					if s, err := eureka.New(m.Eureka,r.outer,a.MappingNamespace);err == nil {
+					if s, err := eureka.New(m.Eureka, r.outer, a.MappingNamespace); err == nil {
 						s.Start()
 						r.sources[req.NamespacedName] = s
 					}

@@ -1,0 +1,12 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: MeshSource
+metadata:
+  name: default
+  namespace: istio-qz31
+spec:
+  source:
+    eureka:
+      address:
+      - http://eureka
+      refreshPeriod: 30
+  mappingNamespace: abc

@@ -37,6 +37,7 @@ const (
 	TypeUrl_DestinationRule         = "networking.istio.io/v1alpha3/DestinationRule"
 	TypeUrl_VirtualService          = "networking.istio.io/v1alpha3/VirtualService"
 
+
 	EnvoyFilter_GlobalSidecar = "to_global_sidecar"
 
 	Wellknow_Waidcard  = "*"

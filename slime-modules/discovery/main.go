@@ -25,9 +25,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
+	"slime.io/slime/slime-framework/apis/networking/v1alpha3"
 	microserviceslimeiov1alpha1 "slime.io/slime/slime-modules/discovery/api/v1alpha1"
-	"slime.io/slime/slime-modules/discovery/controllers"
+	"slime.io/slime/slime-modules/discovery/in"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -41,44 +41,51 @@ func init() {
 
 	_ = microserviceslimeiov1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
+	_ = v1alpha3.AddToScheme(scheme)
 }
 
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
+	var configDir string
+	var xdsAddress string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	flag.BoolVar(&enableLeaderElection, "enable-leader-election", true,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&configDir, "config-dir", "", "use config directory..")
+	flag.StringVar(&xdsAddress, "xds-address","","xds address")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		Port:               9443,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "d345fa42.my.domain",
-	})
-	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
+	if configDir == "" {
+		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+			Scheme:             scheme,
+			MetricsBindAddress: metricsAddr,
+			Port:               9443,
+			LeaderElection:     enableLeaderElection,
+			LeaderElectionID:   "discovery",
+		})
+		if err != nil {
+			setupLog.Error(err, "unable to start manager")
+			os.Exit(1)
+		}
+
+		r := in.New(xdsAddress,mgr.GetClient(),ctrl.Log.WithName("in").WithName("MeshSource"),mgr.GetScheme())
+		if err = r.SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "MeshSource")
+			os.Exit(1)
+		}
+		// +kubebuilder:scaffold:builder
+
+		setupLog.Info("starting manager")
+		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+			setupLog.Error(err, "problem running manager")
+			os.Exit(1)
+		}
+	} else {
+
 	}
 
-	if err = (&controllers.MeshSourceReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MeshSource"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MeshSource")
-		os.Exit(1)
-	}
-	// +kubebuilder:scaffold:builder
-
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
-	}
 }

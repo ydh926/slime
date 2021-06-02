@@ -28,10 +28,10 @@ func New(client client.Client) *Actor {
 }
 
 func eventToObject(event *model.Event) runtime.Object {
-	spec, err := util.ProtoToMap(event.Message)
+	spec, err := util.ProtoToMap(event.Spec)
 	if err == nil {
-		switch event.TypeUrl {
-		case util.TypeUrl_ServiceEntry:
+		switch event.GroupVersionKind {
+		case model.GVKServiceEntry:
 			return &istio_types.ServiceEntry{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      event.Name,
@@ -39,7 +39,7 @@ func eventToObject(event *model.Event) runtime.Object {
 				},
 				Spec: spec,
 			}
-		case util.TypeUrl_Sidecar:
+		case model.GVKSidecar:
 			return &istio_types.Sidecar{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      event.Name,

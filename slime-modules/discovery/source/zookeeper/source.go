@@ -1,11 +1,8 @@
 package zookeeper
 
 import (
+	model2 "istio.io/istio-mcp/pkg/model"
 	"reflect"
-	"slime.io/slime/slime-framework/util"
-	"slime.io/slime/slime-modules/discovery/api/v1alpha1"
-	"slime.io/slime/slime-modules/discovery/model"
-	meshsource "slime.io/slime/slime-modules/discovery/source"
 	"sort"
 	"strings"
 	"time"
@@ -14,13 +11,16 @@ import (
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/samuel/go-zookeeper/zk"
 	"istio.io/api/networking/v1alpha3"
+	"slime.io/slime/slime-modules/discovery/api/v1alpha1"
+	"slime.io/slime/slime-modules/discovery/model"
+	meshsource "slime.io/slime/slime-modules/discovery/source"
 )
 
 //var Scope = log.RegisterScope("zookeeper", "zookeeper debugging", 0)
 
 type ServiceEntryWithMeta struct {
 	ServiceEntry *v1alpha3.ServiceEntry
-	Meta         *model.Meta
+	Meta         model2.ConfigMeta
 }
 
 // source is a simplified client interface for listening/getting Kubernetes resources in an unstructured way.
@@ -31,7 +31,7 @@ type source struct {
 	gatewayModel          bool
 	outer                 model.Actor
 	MappingNamespace      string
-	stop                  BroadcastService
+	stop                  chan bool
 }
 
 func (s *source) GetMappingNamespace() string {
@@ -63,7 +63,7 @@ func (s *source) Start() {
 }
 
 func (s *source) Stop() {
-	s.stop.BroadCast(struct{}{})
+	close(s.stop)
 }
 
 const (
@@ -102,8 +102,6 @@ retry:
 	//init update
 	updateFunction(children, path)
 
-	stopCh := make(chan struct{})
-	s.stop.Register(stopCh)
 	for {
 		select {
 		case watchEvent := <-event:
@@ -120,8 +118,7 @@ retry:
 			default:
 				goto retry
 			}
-		case <-stopCh:
-			s.stop.DeRegister(stopCh)
+		case <-s.stop:
 			return
 		}
 	}
@@ -143,8 +140,6 @@ retry:
 	//init update
 	updateFunction(providerChildren, consumerChildren, providersPath)
 
-	stopCh := make(chan struct{})
-	s.stop.Register(stopCh)
 	for {
 		select {
 		case providerWatchEvent := <-providerEvent:
@@ -172,19 +167,20 @@ retry:
 				}
 
 			}
-		case <-stopCh:
-			s.stop.DeRegister(stopCh)
+		case <-s.stop:
 			return
 		}
 	}
 }
 
-func BuildEvent(eventType model.EventType, item proto.Message, meta *model.Meta) *model.Event {
+func BuildEvent(eventType model.EventType, item proto.Message, meta model2.ConfigMeta) *model.Event {
 	return &model.Event{
 		EventType: eventType,
-		Meta:      *meta,
+		Config: model2.Config{
+			Spec: item,
+			ConfigMeta: meta,
+		},
 		Version:   time.Now().Unix(),
-		Message:   item,
 	}
 }
 
@@ -232,10 +228,11 @@ func (s *source) EndpointUpdate(provider, consumer []string, path string) {
 		for serviceKey, a := range seMap {
 			news := &ServiceEntryWithMeta{
 				ServiceEntry: a,
-				Meta: &model.Meta{
+				Meta: model2.ConfigMeta{
+					GroupVersionKind: model.GVKServiceEntry,
 					Name:      service,
 					Namespace: s.MappingNamespace,
-					TypeUrl:   util.TypeUrl_ServiceEntry,
+					ResourceVersion: time.Now().String(),
 				},
 			}
 			if seCache, ok := s.cache.Get(service); ok {
